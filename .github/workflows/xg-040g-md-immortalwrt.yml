@@ -11,6 +11,7 @@ on:
         options:
           - master-XG-040G-MD
           - openwrt-25.12-XG-040G-MD
+  push:
 
 env:
   REPO_URL: https://github.com/fzs209/immortalwrt.git
@@ -66,10 +67,16 @@ jobs:
       uses: actions/checkout@main
 
     - name: Clone Source Code(克隆源代码)
-      env:
-        REPO_BRANCH: ${{ github.event.inputs.repo_branch }}
       run: |
         df -hT $GITHUB_WORKSPACE
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          REPO_BRANCH="${{ github.event.inputs.repo_branch }}"
+        elif [ "${{ github.ref_name }}" = "openwrt-25.12-XG-040G-MD" ]; then
+          REPO_BRANCH="openwrt-25.12-XG-040G-MD"
+        else
+          REPO_BRANCH="master-XG-040G-MD"
+        fi
+
         AUTH_REPO_URL=$(echo "$REPO_URL" | sed "s|://|://x-access-token:${{ secrets.REPO_TOKEN }}@|")
         git clone "$AUTH_REPO_URL" -b "$REPO_BRANCH" openwrt
         cd openwrt
