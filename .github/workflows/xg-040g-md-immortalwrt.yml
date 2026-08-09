@@ -1,5 +1,8 @@
 name: XG-040G-MD
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +17,10 @@ on:
   push:
 
 env:
-  REPO_URL: https://github.com/fzs209/immortalwrt.git
+  # 可在仓库 Variables 或 Secrets 中自定义，默认使用原始源码地址
+  REPO_URL: ${{ vars.IMMORTALWRT_REPO_URL || 'https://github.com/fzs209/immortalwrt.git' }}
+  # Fork 仓库常见缺少 REPO_TOKEN，自动回退到 github.token，避免 403
+  BUILD_TOKEN: ${{ secrets.REPO_TOKEN || github.token }}
   # REPO_BRANCH 将由 workflow_dispatch 输入动态设置
   DEVICE_TARGET: airoha
   DEVICE_SUBTARGET: an7581
@@ -77,8 +83,12 @@ jobs:
           REPO_BRANCH="master-XG-040G-MD"
         fi
 
-        AUTH_REPO_URL=$(echo "$REPO_URL" | sed "s|://|://x-access-token:${{ secrets.REPO_TOKEN }}@|")
-        git clone "$AUTH_REPO_URL" -b "$REPO_BRANCH" openwrt
+        if [ -n "$BUILD_TOKEN" ]; then
+          AUTH_REPO_URL=$(echo "$REPO_URL" | sed "s|://|://x-access-token:${BUILD_TOKEN}@|")
+          git clone "$AUTH_REPO_URL" -b "$REPO_BRANCH" openwrt
+        else
+          git clone "$REPO_URL" -b "$REPO_BRANCH" openwrt
+        fi
         cd openwrt
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
@@ -167,7 +177,7 @@ jobs:
       with:
         name: ${{ env.RELEASE_TAG }}
         tag: ${{ env.RELEASE_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.REPO_TOKEN || github.token }}
         artifacts: ${{ env.FIRMWARE_PATH }}/*
         body: |
           **This is OpenWrt Firmware for XG-040G-MD**
