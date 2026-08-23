@@ -18,7 +18,7 @@ on:
 
 env:
   # 可在仓库 Variables 或 Secrets 中自定义，默认使用原始源码地址
-  REPO_URL: ${{ vars.IMMORTALWRT_REPO_URL || 'https://github.com/fzs209/immortalwrt.git' }}
+  REPO_URL: ${{ vars.IMMORTALWRT_REPO_URL || 'https://github.com/immortalwrt/immortalwrt' }}
   # Fork 仓库常见缺少 REPO_TOKEN，自动回退到 github.token，避免 403
   BUILD_TOKEN: ${{ secrets.REPO_TOKEN || github.token }}
   # REPO_BRANCH 将由 workflow_dispatch 输入动态设置
