@@ -5,15 +5,6 @@ permissions:
 
 on:
   workflow_dispatch:
-    inputs:
-      repo_branch:
-        description: '选择编译分支'
-        required: true
-        default: 'master-XG-040G-MD'
-        type: choice
-        options:
-          - master-XG-040G-MD
-          - openwrt-25.12-XG-040G-MD
   push:
 
 env:
@@ -21,7 +12,8 @@ env:
   REPO_URL: ${{ vars.IMMORTALWRT_REPO_URL || 'https://github.com/immortalwrt/immortalwrt' }}
   # Fork 仓库常见缺少 REPO_TOKEN，自动回退到 github.token，避免 403
   BUILD_TOKEN: ${{ secrets.REPO_TOKEN || github.token }}
-  # REPO_BRANCH 将由 workflow_dispatch 输入动态设置
+  REPO_BRANCH: openwrt-25.12
+  PATCH_DIR: patch-25.12
   DEVICE_TARGET: airoha
   DEVICE_SUBTARGET: an7581
   CONFIG_FILE: config/xg-040g-md.config
@@ -75,14 +67,6 @@ jobs:
     - name: Clone Source Code(克隆源代码)
       run: |
         df -hT $GITHUB_WORKSPACE
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          REPO_BRANCH="${{ github.event.inputs.repo_branch }}"
-        elif [ "${{ github.ref_name }}" = "openwrt-25.12-XG-040G-MD" ]; then
-          REPO_BRANCH="openwrt-25.12-XG-040G-MD"
-        else
-          REPO_BRANCH="master-XG-040G-MD"
-        fi
-
         if [ -n "$BUILD_TOKEN" ]; then
           AUTH_REPO_URL=$(echo "$REPO_URL" | sed "s|://|://x-access-token:${BUILD_TOKEN}@|")
           git clone "$AUTH_REPO_URL" -b "$REPO_BRANCH" openwrt
@@ -93,7 +77,6 @@ jobs:
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
         echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
-        echo "REPO_BRANCH=$REPO_BRANCH" >> $GITHUB_ENV
 
     - name: Generate Variables(生成变量)
       run: |
@@ -111,11 +94,20 @@ jobs:
         mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
         prefix: ${{ env.OPENWRT_PATH }}
     
+    - name: Prepare Feeds(准备feeds)
+      run: |
+        cp "$GITHUB_WORKSPACE/$PATCH_DIR/feeds.conf.default" "$OPENWRT_PATH/feeds.conf.default"
+
     - name: Install Feeds(安装feeds)
       run: |
         cd $OPENWRT_PATH
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+
+    - name: Apply Device Patches(应用设备补丁)
+      run: |
+        chmod +x "$GITHUB_WORKSPACE/$PATCH_DIR/patch.sh"
+        "$GITHUB_WORKSPACE/$PATCH_DIR/patch.sh" "$OPENWRT_PATH"
 
     - name: Load Custom Configuration(加载自定义配置)
       run: |

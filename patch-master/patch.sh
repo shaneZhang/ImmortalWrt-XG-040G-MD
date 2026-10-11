@@ -1,10 +1,21 @@
 #!/bin/bash
+set -euo pipefail
+
 # 自动生成：OpenWrt Airoha 补丁部署脚本
-# 用法：将patch文件夹放入源码根目录，cd patch && ./patch.sh
+# 用法：先安装 feeds，再执行 ../patch-master/patch.sh，或显式传入源码根目录
 
 # 获取脚本所在绝对路径，避免相对路径错误
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+PROJECT_ROOT="${1:-$(dirname "$SCRIPT_DIR")}"
+
+if [ ! -d "$PROJECT_ROOT/package" ] || [ ! -d "$PROJECT_ROOT/target/linux" ]; then
+    echo "错误：目标目录不是完整的 ImmortalWrt 源码树：$PROJECT_ROOT" >&2
+    exit 2
+fi
+if ! grep -Fqx 'KERNEL_PATCHVER:=6.12' "$PROJECT_ROOT/target/linux/airoha/Makefile"; then
+    echo "错误：当前 patch-master 尚未移植到非 6.12 内核。" >&2
+    exit 3
+fi
 
 echo "正在部署补丁到源码目录：$PROJECT_ROOT"
 echo "========================================"
@@ -14,6 +25,9 @@ mkdir -p "$PROJECT_ROOT/."
 cp -a "$SCRIPT_DIR/feeds.conf.default" "$PROJECT_ROOT/feeds.conf.default"
 mkdir -p "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults"
 cp -a "$SCRIPT_DIR/package/base-files/files/etc/uci-defaults/99_fix-airoha-mac" "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults/99_fix-airoha-mac"
+cp -a "$SCRIPT_DIR/package/base-files/files/etc/uci-defaults/99-tailscale-safe-defaults" "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults/99-tailscale-safe-defaults"
+mkdir -p "$PROJECT_ROOT/package/base-files/files/etc/init.d"
+cp -a "$SCRIPT_DIR/package/base-files/files/etc/init.d/tailscale-safe-guard" "$PROJECT_ROOT/package/base-files/files/etc/init.d/tailscale-safe-guard"
 mkdir -p "$PROJECT_ROOT/package/boot/uboot-tools/uboot-envtools/files"
 cp -a "$SCRIPT_DIR/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic" "$PROJECT_ROOT/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic"
 mkdir -p "$PROJECT_ROOT/package/kernel/linux/files"
@@ -21,7 +35,8 @@ cp -a "$SCRIPT_DIR/package/kernel/linux/files/sysctl-nf-conntrack.conf" "$PROJEC
 mkdir -p "$PROJECT_ROOT/package/kernel/linux/modules"
 cp -a "$SCRIPT_DIR/package/kernel/linux/modules/netdevices.mk" "$PROJECT_ROOT/package/kernel/linux/modules/netdevices.mk"
 mkdir -p "$PROJECT_ROOT/package"
-cp -a "$SCRIPT_DIR/package/luci-app-airoha-npu/" "$PROJECT_ROOT/package/luci-app-airoha-npu/"
+mkdir -p "$PROJECT_ROOT/package/luci-app-airoha-npu"
+cp -a "$SCRIPT_DIR/package/luci-app-airoha-npu/." "$PROJECT_ROOT/package/luci-app-airoha-npu/"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/an7581/base-files/etc/board.d"
 cp -a "$SCRIPT_DIR/target/linux/airoha/an7581/base-files/etc/board.d/02_network" "$PROJECT_ROOT/target/linux/airoha/an7581/base-files/etc/board.d/02_network"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/an7581"
@@ -58,6 +73,17 @@ mkdir -p "$PROJECT_ROOT/target/linux/generic/pending-6.12"
 cp -a "$SCRIPT_DIR/target/linux/generic/pending-6.12/675-02-nft_flow_offload-add-bridging-support.patch" "$PROJECT_ROOT/target/linux/generic/pending-6.12/675-02-nft_flow_offload-add-bridging-support.patch"
 mkdir -p "$PROJECT_ROOT/target/linux/generic/pending-6.12"
 cp -a "$SCRIPT_DIR/target/linux/generic/pending-6.12/675-04-nft_flow_offload-add-vlan-passthrough-support.patch" "$PROJECT_ROOT/target/linux/generic/pending-6.12/675-04-nft_flow_offload-add-vlan-passthrough-support.patch"
+
+TAILSCALE_VIEW="$PROJECT_ROOT/feeds/luci/applications/luci-app-tailscale-community/htdocs/luci-static/resources/view/tailscale.js"
+TAILSCALE_SETTINGS="$PROJECT_ROOT/feeds/luci/applications/luci-app-tailscale-community/root/etc/init.d/tailscale-settings"
+if [ ! -f "$TAILSCALE_VIEW" ] || [ ! -f "$TAILSCALE_SETTINGS" ]; then
+    echo "错误：未找到 master 分支的 Tailscale LuCI 安全应用入口，请先安装 feeds。" >&2
+    exit 1
+fi
+if ! grep -Fq 'ui.changes.apply' "$TAILSCALE_VIEW"; then
+    echo "错误：当前 Tailscale LuCI 缺少 Save & Apply 自动回滚保护。" >&2
+    exit 1
+fi
 
 echo "========================================"
 echo "✅ 补丁部署完成！请重新编译源码。注：xg-040g-md.config 未被打包，请手动复制。"

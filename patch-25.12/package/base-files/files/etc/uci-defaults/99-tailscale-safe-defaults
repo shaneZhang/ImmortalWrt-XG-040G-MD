@@ -1,0 +1,22 @@
+#!/bin/sh
+
+if ! uci -q get tailscale.settings >/dev/null; then
+    uci -q batch <<'EOF'
+set tailscale.settings='settings'
+set tailscale.settings.fw_mode='nftables'
+set tailscale.settings.accept_routes='0'
+set tailscale.settings.advertise_exit_node='0'
+set tailscale.settings.exit_node=''
+set tailscale.settings.exit_node_allow_lan_access='1'
+set tailscale.settings.dns_mode='disabled'
+set tailscale.settings.disable_magic_dns='1'
+EOF
+else
+    uci -q set tailscale.settings.fw_mode='nftables'
+    exit_node="$(uci -q get tailscale.settings.exit_node)"
+    [ -n "$exit_node" ] && uci -q set tailscale.settings.exit_node_allow_lan_access='1'
+fi
+
+uci -q commit tailscale
+/etc/init.d/tailscale-safe-guard enable
+exit 0

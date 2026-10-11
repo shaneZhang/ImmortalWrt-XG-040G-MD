@@ -1,0 +1,17 @@
+diff --git a/applications/luci-app-tailscale-community/root/usr/share/rpcd/ucode/tailscale.uc b/applications/luci-app-tailscale-community/root/usr/share/rpcd/ucode/tailscale.uc
+--- a/applications/luci-app-tailscale-community/root/usr/share/rpcd/ucode/tailscale.uc
++++ b/applications/luci-app-tailscale-community/root/usr/share/rpcd/ucode/tailscale.uc
+@@ -140,6 +140,13 @@ methods.set_settings = {
+ 		if (form_data == null || length(form_data) == 0) {
+ 			return { error: 'Missing or invalid form_data parameter. Please provide settings data.' };
+ 		}
++		if (form_data.fw_mode != 'nftables') {
++			return { error: 'Only nftables firewall mode is supported on this firmware.' };
++		}
++		if (form_data.accept_routes == '1') {
++			return { error: 'Accept Routes is disabled on this firmware because overlapping subnet routes can make the LAN gateway unreachable.' };
++		}
++
+ 		let args = ['set'];
+ 
+ 		push(args,'--accept-routes=' + (form_data.accept_routes == '1'));

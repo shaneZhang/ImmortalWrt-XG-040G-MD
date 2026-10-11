@@ -1,0 +1,35 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+START=75
+
+NAME=tailscale-safe-guard
+
+enforce_safe_settings() {
+    local fw_mode exit_node allow_lan changed
+    changed=0
+    config_load tailscale
+
+    config_get fw_mode settings fw_mode 'nftables'
+    if [ "$fw_mode" != 'nftables' ]; then
+        logger -t "$NAME" "resetting unsupported firewall mode to nftables"
+        uci set tailscale.settings.fw_mode='nftables'
+        changed=1
+    fi
+
+    config_get exit_node settings exit_node ''
+    config_get allow_lan settings exit_node_allow_lan_access '1'
+    if [ -n "$exit_node" ] && [ "$allow_lan" != '1' ]; then
+        logger -t "$NAME" "enabling LAN access for configured exit node"
+        uci set tailscale.settings.exit_node_allow_lan_access='1'
+        changed=1
+    fi
+
+    [ "$changed" = '1' ] && uci -q commit tailscale
+    return 0
+}
+
+start_service() {
+    [ -e /etc/config/tailscale ] || return 0
+    enforce_safe_settings
+}

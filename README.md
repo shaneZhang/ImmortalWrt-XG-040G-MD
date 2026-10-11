@@ -6,7 +6,8 @@ ImmortalWrt firmware for NOKIA BELL XG-040G-MD
 
 ### 项目说明
 
-* 固件源码使用 [fzs209/immortalwrt](https://github.com/fzs209/immortalwrt)。
+* 固件源码使用官方 [immortalwrt/immortalwrt](https://github.com/immortalwrt/immortalwrt) 的 `openwrt-25.12` 分支，并叠加本仓库的 XG-040G-MD 设备补丁。
+* 官方 `master` 已升级到 Linux 6.18；当前设备与 NPU 补丁仍基于 Linux 6.12，因此暂不支持直接切换到 `master`。
 * 基于 [xiangtailiang/openwrt](https://github.com/xiangtailiang/openwrt) 仓库的补丁适配 SkyHigh S35ML02G300 和 Fudan Micro FM25G02B 闪存。
 * 基于 [XG-040G-MD (AN7581) NPU 固件加载报错分析与修复记录](https://github.com/xiangtailiang/OpenWrt-for-XG-040G-MD/blob/main/docs/npu-firmware-load.md) 修复内核日志报错：
     ```text

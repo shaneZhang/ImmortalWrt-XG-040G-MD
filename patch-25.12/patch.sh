@@ -1,10 +1,21 @@
 #!/bin/bash
+set -euo pipefail
+
 # 自动生成：OpenWrt Airoha 补丁部署脚本
-# 用法：将patch文件夹放入源码根目录，cd patch && ./patch.sh
+# 用法：先安装 feeds，再执行 ../patch-25.12/patch.sh，或显式传入源码根目录
 
 # 获取脚本所在绝对路径，避免相对路径错误
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
+PROJECT_ROOT="${1:-$(dirname "$SCRIPT_DIR")}"
+
+if [ ! -d "$PROJECT_ROOT/package" ] || [ ! -d "$PROJECT_ROOT/target/linux" ]; then
+    echo "错误：目标目录不是完整的 ImmortalWrt 源码树：$PROJECT_ROOT" >&2
+    exit 2
+fi
+if ! grep -Fqx 'KERNEL_PATCHVER:=6.12' "$PROJECT_ROOT/target/linux/airoha/Makefile"; then
+    echo "错误：patch-25.12 仅支持 Linux 6.12 源码树。" >&2
+    exit 3
+fi
 
 echo "正在部署补丁到源码目录：$PROJECT_ROOT"
 echo "========================================"
@@ -13,12 +24,17 @@ echo "========================================"
 rm -f "$PROJECT_ROOT/target/linux/airoha/patches-6.12/910-02-v7.0-net-airoha-npu-Add-the-capability-to-read-firmware-n.patch"
 
 # 2. 复制所有修改/新增文件
+cp -a "$SCRIPT_DIR/feeds.conf.default" "$PROJECT_ROOT/feeds.conf.default"
 mkdir -p "$PROJECT_ROOT/package/boot/uboot-tools/uboot-envtools/files"
 cp -a "$SCRIPT_DIR/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic" "$PROJECT_ROOT/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic"
 mkdir -p "$PROJECT_ROOT/package/kernel/linux/files"
 cp -a "$SCRIPT_DIR/package/kernel/linux/files/sysctl-nf-conntrack.conf" "$PROJECT_ROOT/package/kernel/linux/files/sysctl-nf-conntrack.conf"
 mkdir -p "$PROJECT_ROOT/package/kernel/linux/modules"
 cp -a "$SCRIPT_DIR/package/kernel/linux/modules/netdevices.mk" "$PROJECT_ROOT/package/kernel/linux/modules/netdevices.mk"
+mkdir -p "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults"
+cp -a "$SCRIPT_DIR/package/base-files/files/etc/uci-defaults/99-tailscale-safe-defaults" "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults/99-tailscale-safe-defaults"
+mkdir -p "$PROJECT_ROOT/package/base-files/files/etc/init.d"
+cp -a "$SCRIPT_DIR/package/base-files/files/etc/init.d/tailscale-safe-guard" "$PROJECT_ROOT/package/base-files/files/etc/init.d/tailscale-safe-guard"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/an7581/base-files/etc/board.d"
 cp -a "$SCRIPT_DIR/target/linux/airoha/an7581/base-files/etc/board.d/02_network" "$PROJECT_ROOT/target/linux/airoha/an7581/base-files/etc/board.d/02_network"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/an7581"
@@ -41,7 +57,8 @@ cp -a "$SCRIPT_DIR/target/linux/generic/pending-6.12/487-mtd-spinand-Add-support
 mkdir -p "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults"
 cp -a "$SCRIPT_DIR/package/base-files/files/etc/uci-defaults/99_fix-airoha-mac" "$PROJECT_ROOT/package/base-files/files/etc/uci-defaults/99_fix-airoha-mac"
 mkdir -p "$PROJECT_ROOT/package"
-cp -a "$SCRIPT_DIR/package/luci-app-airoha-npu/" "$PROJECT_ROOT/package/luci-app-airoha-npu/"
+mkdir -p "$PROJECT_ROOT/package/luci-app-airoha-npu"
+cp -a "$SCRIPT_DIR/package/luci-app-airoha-npu/." "$PROJECT_ROOT/package/luci-app-airoha-npu/"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/dts"
 cp -a "$SCRIPT_DIR/target/linux/airoha/dts/an7581-bell_xg-040g-md.dts" "$PROJECT_ROOT/target/linux/airoha/dts/an7581-bell_xg-040g-md.dts"
 mkdir -p "$PROJECT_ROOT/target/linux/airoha/patches-6.12"
@@ -66,6 +83,21 @@ mkdir -p "$PROJECT_ROOT/target/linux/generic/pending-6.12"
 cp -a "$SCRIPT_DIR/target/linux/generic/pending-6.12/675-02-nft_flow_offload-add-bridging-support.patch" "$PROJECT_ROOT/target/linux/generic/pending-6.12/675-02-nft_flow_offload-add-bridging-support.patch"
 mkdir -p "$PROJECT_ROOT/target/linux/generic/pending-6.12"
 cp -a "$SCRIPT_DIR/target/linux/generic/pending-6.12/675-04-nft_flow_offload-add-vlan-passthrough-support.patch" "$PROJECT_ROOT/target/linux/generic/pending-6.12/675-04-nft_flow_offload-add-vlan-passthrough-support.patch"
+
+TAILSCALE_RPC="$PROJECT_ROOT/feeds/luci/applications/luci-app-tailscale-community/root/usr/share/rpcd/ucode/tailscale.uc"
+TAILSCALE_PATCH="$SCRIPT_DIR/patches/luci/001-tailscale-safe-settings.patch"
+if [ ! -f "$TAILSCALE_RPC" ]; then
+    echo "错误：未找到 openwrt-25.12 分支的 Tailscale LuCI RPC，请先安装 feeds。" >&2
+    exit 1
+fi
+if ! grep -Fq 'Accept Routes is disabled on this firmware' "$TAILSCALE_RPC"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT/feeds/luci" < "$TAILSCALE_PATCH"
+fi
+if ! grep -Fq 'Only nftables firewall mode is supported on this firmware' "$TAILSCALE_RPC" || \
+   ! grep -Fq 'Accept Routes is disabled on this firmware' "$TAILSCALE_RPC"; then
+    echo "错误：Tailscale 25.12 安全校验补丁未生效。" >&2
+    exit 1
+fi
 
 echo "========================================"
 echo "✅ 补丁部署完成！请重新编译源码。"
