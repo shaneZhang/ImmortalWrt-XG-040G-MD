@@ -1,0 +1,9 @@
+--- a/tools/libtool/Makefile
++++ b/tools/libtool/Makefile
+@@ -47,7 +47,6 @@ define Host/Configure
+ 	$(if $(QUILT),$(call Host/Bootstrap))
+ 	$(call Host/Configure/Default)
+-	$(call Host/Uninstall)
+ endef
+ 
+ define Host/Install

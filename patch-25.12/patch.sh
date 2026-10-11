@@ -36,6 +36,22 @@ if [ -f "$NINJA_MAKEFILE" ] && \
     exit 1
 fi
 
+LIBTOOL_MAKEFILE="$PROJECT_ROOT/tools/libtool/Makefile"
+LIBTOOL_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/002-tools-libtool-preserve-configured-makefile.patch"
+if [ -f "$LIBTOOL_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.5.4' "$LIBTOOL_MAKEFILE" && \
+   sed -n '/^define Host\/Configure$/,/^endef$/p' "$LIBTOOL_MAKEFILE" | \
+       grep -Fq '$(call Host/Uninstall)'; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT" < "$LIBTOOL_BUILD_FIX"
+fi
+if [ -f "$LIBTOOL_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.5.4' "$LIBTOOL_MAKEFILE" && \
+   sed -n '/^define Host\/Configure$/,/^endef$/p' "$LIBTOOL_MAKEFILE" | \
+       grep -Fq '$(call Host/Uninstall)'; then
+    echo "错误：libtool 2.5.4 构建兼容补丁未生效。" >&2
+    exit 1
+fi
+
 # 1. 删除废弃的旧文件
 rm -f "$PROJECT_ROOT/target/linux/airoha/patches-6.12/910-02-v7.0-net-airoha-npu-Add-the-capability-to-read-firmware-n.patch"
 
