@@ -1,0 +1,10 @@
+--- a/tools/ninja/Makefile
++++ b/tools/ninja/Makefile
+@@ -17,7 +17,6 @@ define Host/Configure
+ 		CXX="$(HOSTCXX_NOCACHE)" \
+ 		$(STAGING_DIR_HOST)/bin/$(PYTHON) configure.py \
+ 			$(if $(shell $(STAGING_DIR_HOST)/bin/ninja --version),,--bootstrap) \
+-			--no-rebuild \
+ 			--verbose
+ 	-$(Host/Install)
+ endef

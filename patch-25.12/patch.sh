@@ -20,6 +20,22 @@ fi
 echo "正在部署补丁到源码目录：$PROJECT_ROOT"
 echo "========================================"
 
+# Ninja 1.13.2 的原始 configure.py 不支持 --no-rebuild。官方源码补丁未生效时，
+# 该参数会让 host ninja 在配置阶段直接退出；移除它只会多执行一次自举重编译。
+NINJA_MAKEFILE="$PROJECT_ROOT/tools/ninja/Makefile"
+NINJA_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/001-tools-ninja-drop-no-rebuild.patch"
+if [ -f "$NINJA_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=1.13.2' "$NINJA_MAKEFILE" && \
+   grep -Fq -- '--no-rebuild' "$NINJA_MAKEFILE"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT" < "$NINJA_BUILD_FIX"
+fi
+if [ -f "$NINJA_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=1.13.2' "$NINJA_MAKEFILE" && \
+   grep -Fq -- '--no-rebuild' "$NINJA_MAKEFILE"; then
+    echo "错误：Ninja 1.13.2 构建兼容补丁未生效。" >&2
+    exit 1
+fi
+
 # 1. 删除废弃的旧文件
 rm -f "$PROJECT_ROOT/target/linux/airoha/patches-6.12/910-02-v7.0-net-airoha-npu-Add-the-capability-to-read-firmware-n.patch"
 
