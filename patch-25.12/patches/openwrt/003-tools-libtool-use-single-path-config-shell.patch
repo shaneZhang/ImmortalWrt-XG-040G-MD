@@ -1,0 +1,12 @@
+--- a/tools/libtool/Makefile
++++ b/tools/libtool/Makefile
+@@ -19,7 +19,8 @@ include $(INCLUDE_DIR)/host-build.mk
+ export GNULIB_SRCDIR:=$(HOST_GNULIB_SRCDIR)
+ 
+ HOST_CONFIGURE_VARS += \
+-	lt_cv_sys_dlsearch_path=""
++	lt_cv_sys_dlsearch_path="" \
++	CONFIG_SHELL="/bin/bash"
+ 
+ HOST_MAKE_FLAGS += \
+ 	am__CONFIG_DISTCLEAN_FILES= \

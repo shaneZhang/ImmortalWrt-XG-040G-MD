@@ -52,6 +52,21 @@ if [ -f "$LIBTOOL_MAKEFILE" ] && \
     exit 1
 fi
 
+# OpenWrt 的 SHELL 可能是带参数的 "/usr/bin/env bash"。libtool 2.5.4 会在
+# 生成规则中把 CONFIG_SHELL 单引号包裹，导致它被当成一个不存在的可执行路径。
+LIBTOOL_SHELL_FIX="$SCRIPT_DIR/patches/openwrt/003-tools-libtool-use-single-path-config-shell.patch"
+if [ -f "$LIBTOOL_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.5.4' "$LIBTOOL_MAKEFILE" && \
+   ! grep -Fq 'CONFIG_SHELL="/bin/bash"' "$LIBTOOL_MAKEFILE"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT" < "$LIBTOOL_SHELL_FIX"
+fi
+if [ -f "$LIBTOOL_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.5.4' "$LIBTOOL_MAKEFILE" && \
+   ! grep -Fq 'CONFIG_SHELL="/bin/bash"' "$LIBTOOL_MAKEFILE"; then
+    echo "错误：libtool 2.5.4 CONFIG_SHELL 兼容补丁未生效。" >&2
+    exit 1
+fi
+
 # 1. 删除废弃的旧文件
 rm -f "$PROJECT_ROOT/target/linux/airoha/patches-6.12/910-02-v7.0-net-airoha-npu-Add-the-capability-to-read-firmware-n.patch"
 
