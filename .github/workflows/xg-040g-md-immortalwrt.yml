@@ -17,7 +17,6 @@ env:
   DEVICE_TARGET: airoha
   DEVICE_SUBTARGET: an7581
   CONFIG_FILE: config/xg-040g-md.config
-  CACHE_TOOLCHAIN: true
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
   TZ: Asia/Shanghai
@@ -86,14 +85,6 @@ jobs:
         echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
         echo "RELEASE_TAG=XG-040G-MD-$(date +"%Y%m%d")-${{ github.run_number }}" >> $GITHUB_ENV
 
-    - name: Cache Toolchain(缓存工具链)
-      if: env.CACHE_TOOLCHAIN == 'true'
-      uses: HiGarfield/cachewrtbuild@main
-      with:
-        ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-        prefix: ${{ env.OPENWRT_PATH }}
-    
     - name: Prepare Feeds(准备feeds)
       run: |
         cp "$GITHUB_WORKSPACE/$PATCH_DIR/feeds.conf.default" "$OPENWRT_PATH/feeds.conf.default"
