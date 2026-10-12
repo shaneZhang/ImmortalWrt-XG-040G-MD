@@ -67,6 +67,20 @@ if [ -f "$LIBTOOL_MAKEFILE" ] && \
     exit 1
 fi
 
+GOLANG_PACKAGE_MK="$PROJECT_ROOT/feeds/packages/lang/golang/golang-package.mk"
+GOLANG_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/004-golang-disable-vcs-stamping.patch"
+if [ ! -f "$GOLANG_PACKAGE_MK" ]; then
+    echo "错误：未找到 golang-package.mk，请先安装 feeds。" >&2
+    exit 1
+fi
+if ! grep -Fqx $'\tGOFLAGS=-buildvcs=false \\' "$GOLANG_PACKAGE_MK"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT/feeds/packages" < "$GOLANG_BUILD_FIX"
+fi
+if ! grep -Fqx $'\tGOFLAGS=-buildvcs=false \\' "$GOLANG_PACKAGE_MK"; then
+    echo "错误：Go 1.26 VCS stamping 兼容补丁未生效。" >&2
+    exit 1
+fi
+
 # 1. 删除废弃的旧文件
 rm -f "$PROJECT_ROOT/target/linux/airoha/patches-6.12/910-02-v7.0-net-airoha-npu-Add-the-capability-to-read-firmware-n.patch"
 

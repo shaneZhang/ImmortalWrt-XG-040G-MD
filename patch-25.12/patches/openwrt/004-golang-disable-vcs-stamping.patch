@@ -1,0 +1,10 @@
+--- a/lang/golang/golang-package.mk
++++ b/lang/golang/golang-package.mk
+@@ -220,6 +220,7 @@ GO_PKG_BUILD_VARS= \
+ 	GOPATH="$(GO_PKG_BUILD_DIR)" \
+ 	GOCACHE="$(GO_BUILD_CACHE_DIR)" \
+ 	GOMODCACHE="$(GO_MOD_CACHE_DIR)" \
++	GOFLAGS=-buildvcs=false \
+ 	GOENV=off \
+ 	GOTOOLCHAIN=local
+ 
