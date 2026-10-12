@@ -133,7 +133,7 @@ Signed-off-by: Jon Lin <jon.lin@rock-chips.com>
  static const struct spinand_info fmsh_spinand_table[] = {
  	SPINAND_INFO("FM25G01B",
  		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xd1),
-@@ -235,6 +344,60 @@ static const struct spinand_info fmsh_sp
+@@ -235,6 +344,51 @@ static const struct spinand_info fmsh_sp
  		     SPINAND_HAS_QE_BIT,
  		     SPINAND_ECCINFO(&fm25s01bi3_ooblayout,
  				      fm25s01bi3_ecc_get_status)),
@@ -173,15 +173,6 @@ Signed-off-by: Jon Lin <jon.lin@rock-chips.com>
 +					      &update_cache_variants),
 +		     SPINAND_HAS_QE_BIT,
 +		     SPINAND_ECCINFO(&fm25s01_ooblayout, fm25s01bi3_ecc_ecc_get_status)),
-+	SPINAND_INFO("FM25G02B",
-+		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xD2),
-+		     NAND_MEMORG(1, 2048, 128, 64, 2048, 40, 1, 1, 1),
-+		     NAND_ECCREQ(8, 528),
-+		     SPINAND_INFO_OP_VARIANTS(&read_cache_variants,
-+					      &write_cache_variants,
-+					      &update_cache_variants),
-+		     SPINAND_HAS_QE_BIT,
-+		     SPINAND_ECCINFO(&fm25g02b_ooblayout, fm25s01bi3_ecc_ecc_get_status)),
 +	SPINAND_INFO("FM25G02D",
 +		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE_DUMMY, 0xF2),
 +		     NAND_MEMORG(1, 2048, 64, 64, 2048, 40, 1, 1, 1),
