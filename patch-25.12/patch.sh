@@ -81,6 +81,22 @@ if [ -f "$DOSFSTOOLS_MAKEFILE" ] && \
     exit 1
 fi
 
+# util-linux 的 host 构建只需要 hexdump 和 libuuid。禁用未使用的 ncurses，
+# 避免 Meson 通过隔离的 host pkg-config 查询系统 ncurses 时配置失败。
+UTIL_LINUX_MAKEFILE="$PROJECT_ROOT/tools/util-linux/Makefile"
+UTIL_LINUX_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/006-tools-util-linux-disable-unused-ncurses.patch"
+if [ -f "$UTIL_LINUX_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.41.5' "$UTIL_LINUX_MAKEFILE" && \
+   grep -Fqx $'\t-Dncurses=enabled \\' "$UTIL_LINUX_MAKEFILE"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT" < "$UTIL_LINUX_BUILD_FIX"
+fi
+if [ -f "$UTIL_LINUX_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=2.41.5' "$UTIL_LINUX_MAKEFILE" && \
+   ! grep -Fqx $'\t-Dncurses=disabled \\' "$UTIL_LINUX_MAKEFILE"; then
+    echo "错误：util-linux 2.41.5 ncurses 兼容补丁未生效。" >&2
+    exit 1
+fi
+
 GOLANG_PACKAGE_MK="$PROJECT_ROOT/feeds/packages/lang/golang/golang-package.mk"
 GOLANG_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/004-golang-disable-vcs-stamping.patch"
 if [ ! -f "$GOLANG_PACKAGE_MK" ]; then
