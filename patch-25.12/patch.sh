@@ -97,6 +97,21 @@ if [ -f "$UTIL_LINUX_MAKEFILE" ] && \
     exit 1
 fi
 
+# gnulib 要求 Autoconf 2.64；失败被忽略后，maintainer-clean 会删掉 elfutils 的 Makefile。
+ELFUTILS_MAKEFILE="$PROJECT_ROOT/tools/elfutils/Makefile"
+ELFUTILS_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/007-elfutils-require-autoconf-2.64.patch"
+ELFUTILS_SOURCE_PATCH="$PROJECT_ROOT/tools/elfutils/patches/999-require-autoconf-2.64.patch"
+if [ -f "$ELFUTILS_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=0.192' "$ELFUTILS_MAKEFILE"; then
+    if [ ! -e "$ELFUTILS_SOURCE_PATCH" ]; then
+        cp -a "$ELFUTILS_BUILD_FIX" "$ELFUTILS_SOURCE_PATCH"
+    fi
+    if ! cmp -s "$ELFUTILS_BUILD_FIX" "$ELFUTILS_SOURCE_PATCH"; then
+        echo "错误：elfutils 0.192 Autoconf 兼容补丁未生效。" >&2
+        exit 1
+    fi
+fi
+
 GOLANG_PACKAGE_MK="$PROJECT_ROOT/feeds/packages/lang/golang/golang-package.mk"
 GOLANG_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/004-golang-disable-vcs-stamping.patch"
 if [ ! -f "$GOLANG_PACKAGE_MK" ]; then
