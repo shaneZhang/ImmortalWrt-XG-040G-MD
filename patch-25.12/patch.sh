@@ -67,6 +67,20 @@ if [ -f "$LIBTOOL_MAKEFILE" ] && \
     exit 1
 fi
 
+DOSFSTOOLS_MAKEFILE="$PROJECT_ROOT/tools/dosfstools/Makefile"
+DOSFSTOOLS_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/005-tools-dosfstools-skip-missing-m4-dir.patch"
+if [ -f "$DOSFSTOOLS_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=4.2' "$DOSFSTOOLS_MAKEFILE" && \
+   ! grep -Fqx 'HOST_MACRO_PATHS:=' "$DOSFSTOOLS_MAKEFILE"; then
+    patch --batch --forward -p1 -d "$PROJECT_ROOT" < "$DOSFSTOOLS_BUILD_FIX"
+fi
+if [ -f "$DOSFSTOOLS_MAKEFILE" ] && \
+   grep -Fqx 'PKG_VERSION:=4.2' "$DOSFSTOOLS_MAKEFILE" && \
+   ! grep -Fqx 'HOST_MACRO_PATHS:=' "$DOSFSTOOLS_MAKEFILE"; then
+    echo "错误：dosfstools 4.2 autoreconf 兼容补丁未生效。" >&2
+    exit 1
+fi
+
 GOLANG_PACKAGE_MK="$PROJECT_ROOT/feeds/packages/lang/golang/golang-package.mk"
 GOLANG_BUILD_FIX="$SCRIPT_DIR/patches/openwrt/004-golang-disable-vcs-stamping.patch"
 if [ ! -f "$GOLANG_PACKAGE_MK" ]; then

@@ -1,0 +1,9 @@
+--- a/tools/dosfstools/Makefile
++++ b/tools/dosfstools/Makefile
+@@ -17,6 +17,7 @@
+ 
+ HOST_FIXUP:=autoreconf
++HOST_MACRO_PATHS:=
+ 
+ include $(INCLUDE_DIR)/host-build.mk
+ 
